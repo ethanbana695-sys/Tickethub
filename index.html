@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#101827"><title>TicketHub | English Football Tickets</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="#"><span class="brand-mark">T</span> TICKETHUB</a>
+  <nav><a href="#matches">Matches</a><a href="#how">How it works</a><a href="#footer">Help</a></nav>
+  <button class="admin-toggle" id="adminToggle">Admin</button>
+  <button class="cart-button" id="cartOpen">Basket <span id="cartCount">0</span></button>
+</header>
+<main>
+<section class="hero">
+  <div class="hero-copy">
+    <span class="eyebrow">THE HOME OF ENGLISH FOOTBALL TICKETS</span>
+    <h1>Be there for<br><em>every moment.</em></h1>
+    <p>Discover upcoming fixtures and find your seat at clubs across the English football pyramid.</p>
+    <a class="primary" href="#matches">Explore matches <span>→</span></a>
+    <div class="trust"><span>✓</span> Clear prices&nbsp;&nbsp; <span>✓</span> Secure checkout coming soon</div>
+  </div>
+  <div class="hero-art"><div class="stadium-glow"></div><div class="hero-ball">⚽</div><div class="hero-caption">YOUR CLUB. YOUR MATCH. YOUR TICKET.</div></div>
+</section>
+<section class="league-strip">
+  <span>EXPLORE BY LEAGUE</span>
+  <div id="leagueChips" class="chips"></div>
+</section>
+<section class="matches-section" id="matches">
+  <div class="section-heading"><div><span class="eyebrow">FIND YOUR NEXT MATCH</span><h2>Upcoming matches</h2></div><span class="demo-note">Sample listings · Admin can edit</span></div>
+  <div class="filters">
+    <input id="search" type="search" placeholder="Search club or opponent…">
+    <select id="leagueFilter"><option value="All">All leagues</option></select>
+    <select id="sort"><option value="date">Soonest first</option><option value="price">Lowest price</option></select>
+  </div>
+  <div id="matchGrid" class="match-grid"></div>
+</section>
+<section class="how" id="how"><span class="eyebrow">SIMPLE FROM START TO FINISH</span><h2>Matchday starts here.</h2><div class="steps"><article><b>01</b><h3>Choose a match</h3><p>Browse clubs, competitions and upcoming fixtures.</p></article><article><b>02</b><h3>Select tickets</h3><p>Choose a ticket type and quantity at the displayed price.</p></article><article><b>03</b><h3>Review your basket</h3><p>Check your order before proceeding to checkout.</p></article></div></section>
+<section class="admin-panel hidden" id="adminPanel">
+  <div class="section-heading"><div><span class="eyebrow">OWNER CONTROL CENTRE</span><h2>Manage listings</h2></div><button class="secondary" id="closeAdmin">Close</button></div>
+  <p class="admin-warning">Demo admin controls only. This version stores edits in this browser; it is not yet a protected online admin system.</p>
+  <form id="matchForm" class="admin-form">
+    <input name="home" placeholder="Home club" required><input name="away" placeholder="Away club" required>
+    <select name="league" id="adminLeague"></select><input name="date" type="datetime-local" required>
+    <input name="venue" placeholder="Stadium / venue"><input name="price" type="number" min="1" step="0.01" placeholder="From price (£)" required>
+    <input name="stock" type="number" min="0" step="1" placeholder="Tickets available" required>
+    <button class="primary" type="submit">Add match</button>
+  </form>
+  <div id="adminRows"></div>
+</section>
+</main>
+<footer id="footer"><div class="brand"><span class="brand-mark">T</span> TICKETHUB</div><p>TicketHub is an independent ticketing concept. Club affiliation and ticket supply must be authorised before selling tickets.</p><span>© 2026 TicketHub</span></footer>
+<div class="drawer-backdrop hidden" id="backdrop"></div>
+<aside class="drawer" id="drawer"><div class="drawer-head"><h2>Your basket</h2><button id="cartClose" class="icon-btn">×</button></div><div id="cartItems"></div><div class="drawer-total"><span>Total</span><strong id="cartTotal">£0.00</strong></div><button id="checkout" class="primary full">Continue to checkout</button><p class="smallprint">Demo only: payment processing is not connected.</p></aside>
+<div class="toast" id="toast"></div>
+<script src="app.js"></script>
+</body></html>
