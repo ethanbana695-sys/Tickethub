@@ -29,8 +29,14 @@ export default async function handler(req, res) {
     );
 
     if (!response.ok) {
-      return res.status(response.status).json({
-        error: "Unable to retrieve fixtures"
+  const details = await response.text();
+
+  return res.status(response.status).json({
+    error: "Football provider rejected request",
+    providerStatus: response.status,
+    details: details.slice(0, 500)
+  });
+    }
       });
     }
 
