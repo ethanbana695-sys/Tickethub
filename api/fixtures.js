@@ -20,7 +20,7 @@ export default async function handler(req, res) {
     const dateTo = future.toISOString().slice(0, 10);
 
     const response = await fetch(
-      `https://api.football-data.org/v4/matches?dateFrom=${dateFrom}&dateTo=${dateTo}&competitions=PL,ELC,EL1`,
+      `https://api.football-data.org/v4/matches?dateFrom=${dateFrom}&dateTo=${dateTo}&competitions=PL,ELC`,
       {
         headers: {
           "X-Auth-Token": API_KEY
