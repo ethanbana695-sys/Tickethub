@@ -96,7 +96,11 @@ function renderMatches() {
 
   grid.innerHTML = visible.length
     ? visible.map(match => `
-      <article class="match-card">
+      <article class="match-card"
+  data-match-id="${escapeHTML(match.id)}"
+  role="button"
+  tabindex="0"
+  style="cursor:pointer">
         <div class="match-top">
           <span>${escapeHTML(match.league)}</span>
           <span>${escapeHTML(match.status || "Fixture")}</span>
