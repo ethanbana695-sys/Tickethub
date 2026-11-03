@@ -18,7 +18,7 @@ module.exports = async function handler(req, res) {
     const dateFrom = today.toISOString().slice(0, 10);
 
     const future = new Date(today);
-    future.setDate(future.getDate() + 30);
+    future.setDate(future.getDate() + 10);
     const dateTo = future.toISOString().slice(0, 10);
 
     const response = await fetch(
