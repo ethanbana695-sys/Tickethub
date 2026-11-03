@@ -50,7 +50,7 @@ function formatDate(date) {
     timeZone: "UTC"
   });
 
-  return `${weekday} ${Number(dateNumber)} ${monthName}, ${hour}:${minute} UK time`;
+  return `${weekday} ${Number(dateNumber)} ${monthName}, ${hour}:${minute}`;
 }
 
 
