@@ -27,15 +27,32 @@ const search = document.getElementById("search");
 const leagueFilter = document.getElementById("leagueFilter");
 const sort = document.getElementById("sort");
 const chips = document.getElementById("leagueChips");
-
 function formatDate(date) {
-  return new Date(date).toLocaleString("en-GB", {
+  const [day, time] = date.split("T");
+  const [year, month, dateNumber] = day.split("-");
+  const [hour, minute] = time.split(":");
+
+  const weekday = new Date(Date.UTC(
+    Number(year),
+    Number(month) - 1,
+    Number(dateNumber)
+  )).toLocaleDateString("en-GB", {
     weekday: "short",
-    day: "numeric",
+    timeZone: "UTC"
+  });
+
+  const monthName = new Date(Date.UTC(
+    Number(year),
+    Number(month) - 1,
+    Number(dateNumber)
+  )).toLocaleDateString("en-GB", {
     month: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Europe/London"
+    timeZone: "UTC"
+  });
+
+  return `${weekday} ${Number(dateNumber)} ${monthName}, ${hour}:${minute} UK time`;
+}
+
   });
 }
 
