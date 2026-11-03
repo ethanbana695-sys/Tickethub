@@ -1,6 +1,8 @@
-export default async function handler(req, res) {
+module.exports = async function handler(req, res) {
   if (req.method !== "GET") {
-    return res.status(405).json({ error: "Method not allowed" });
+    return res.status(405).json({
+      error: "Method not allowed"
+    });
   }
 
   const API_KEY = process.env.FOOTBALL_DATA_API_KEY;
@@ -29,14 +31,12 @@ export default async function handler(req, res) {
     );
 
     if (!response.ok) {
-  const details = await response.text();
+      const details = await response.text();
 
-  return res.status(response.status).json({
-    error: "Football provider rejected request",
-    providerStatus: response.status,
-    details: details.slice(0, 500)
-  });
-    }
+      return res.status(response.status).json({
+        error: "Football provider rejected request",
+        providerStatus: response.status,
+        details: details.slice(0, 500)
       });
     }
 
@@ -62,4 +62,4 @@ export default async function handler(req, res) {
       error: "Fixture service temporarily unavailable"
     });
   }
-}
+};
