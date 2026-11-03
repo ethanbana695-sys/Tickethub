@@ -53,8 +53,6 @@ function formatDate(date) {
   return `${weekday} ${Number(dateNumber)} ${monthName}, ${hour}:${minute} UK time`;
 }
 
-  });
-}
 
 function renderMatches() {
   const query = search.value.toLowerCase();
