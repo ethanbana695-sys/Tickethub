@@ -1,7 +1,6 @@
+
 (() => {
   "use strict";
-
-  // TICKETHUB - MAIN WEBSITE SCRIPT
 
   const $ = id => document.getElementById(id);
 
@@ -11,61 +10,46 @@
     "League One"
   ];
 
+  const CATEGORIES = [
+    { name: "Standard", price: 35 },
+    { name: "Premium", price: 65 },
+    { name: "Hospitality", price: 150 }
+  ];
+
   let fixtures = [];
   let manualMatches = [];
   let basket = [];
   let selectedLeague = "All";
-  let selectedMatch = null;
   let editingId = null;
 
-  // -----------------------------
-  // LOAD SAVED DEMONSTRATION DATA
-  // -----------------------------
-
   try {
-    manualMatches = JSON.parse(
-      localStorage.getItem("th_matches") || "[]"
-    );
-
-    basket = JSON.parse(
-      localStorage.getItem("th_basket") || "[]"
-    );
+    manualMatches = JSON.parse(localStorage.getItem("th_matches") || "[]");
+    basket = JSON.parse(localStorage.getItem("th_basket") || "[]");
   } catch (error) {
     manualMatches = [];
     basket = [];
   }
 
   function saveData() {
-    localStorage.setItem(
-      "th_matches",
-      JSON.stringify(manualMatches)
-    );
-
-    localStorage.setItem(
-      "th_basket",
-      JSON.stringify(basket)
-    );
+    localStorage.setItem("th_matches", JSON.stringify(manualMatches));
+    localStorage.setItem("th_basket", JSON.stringify(basket));
   }
 
-  // -----------------------------
-  // BASIC HELPERS
-  // -----------------------------
-
-  function money(amount) {
+  function money(value) {
     return new Intl.NumberFormat("en-GB", {
       style: "currency",
       currency: "GBP"
-    }).format(Number(amount) || 0);
+    }).format(Number(value) || 0);
   }
 
   function safe(value) {
-    return String(value ?? "").replace(/[&<>"']/g, char => ({
+    return String(value ?? "").replace(/[&<>"']/g, c => ({
       "&": "&amp;",
       "<": "&lt;",
       ">": "&gt;",
       '"': "&quot;",
       "'": "&#39;"
-    })[char]);
+    })[c]);
   }
 
   function makeId() {
@@ -85,7 +69,6 @@
     toast.classList.add("show");
 
     clearTimeout(notify.timer);
-
     notify.timer = setTimeout(() => {
       toast.classList.remove("show");
     }, 3000);
@@ -93,19 +76,13 @@
 
   function formatDate(value) {
     if (!value) {
-      return {
-        date: "Date to be confirmed",
-        time: "Time to be confirmed"
-      };
+      return { date: "Date to be confirmed", time: "Time to be confirmed" };
     }
 
     const date = new Date(value);
 
     if (isNaN(date.getTime())) {
-      return {
-        date: "Date to be confirmed",
-        time: "Time to be confirmed"
-      };
+      return { date: "Date to be confirmed", time: "Time to be confirmed" };
     }
 
     return {
@@ -116,7 +93,6 @@
         year: "numeric",
         timeZone: "Europe/London"
       }),
-
       time: date.toLocaleTimeString("en-GB", {
         hour: "2-digit",
         minute: "2-digit",
@@ -129,39 +105,30 @@
     return [...manualMatches, ...fixtures];
   }
 
-  // -----------------------------
   // LOAD FOOTBALL FIXTURES
-  // -----------------------------
 
   async function loadFixtures() {
     const grid = $("matchGrid");
 
     if (grid) {
-      grid.innerHTML =
-        '<p class="loading-message">Loading football fixtures...</p>';
+      grid.innerHTML = "<p>Loading football fixtures...</p>";
     }
 
     try {
       const response = await fetch("/api/fixtures");
 
       if (!response.ok) {
-        throw new Error("Unable to load fixtures");
+        throw new Error("Fixture request failed");
       }
 
       const data = await response.json();
-
-      const matches = Array.isArray(data)
-        ? data
-        : (data.matches || []);
+      const matches = Array.isArray(data) ? data : (data.matches || []);
 
       fixtures = matches.map(match => {
         const competition =
-          match.competition?.name ||
-          match.league ||
-          "";
+          match.competition?.name || match.league || "";
 
         const name = competition.toLowerCase();
-
         let league = competition;
 
         if (name.includes("premier")) {
@@ -174,51 +141,25 @@
 
         return {
           id: "fixture-" + match.id,
-
-          home:
-            match.homeTeam?.name ||
-            match.home ||
-            "Home team",
-
-          away:
-            match.awayTeam?.name ||
-            match.away ||
-            "Away team",
-
-          league: league,
-
-          date:
-            match.utcDate ||
-            match.date ||
-            "",
-
-          venue:
-            match.venue ||
-            "Venue to be confirmed",
-
-          source: "fixture",
-
-          price: 0,
-          stock: 0
+          home: match.homeTeam?.name || match.home || "Home team",
+          away: match.awayTeam?.name || match.away || "Away team",
+          league,
+          date: match.utcDate || match.date || "",
+          venue: match.venue || "Venue to be confirmed",
+          source: "fixture"
         };
       });
 
       render();
-
     } catch (error) {
-      console.error("Fixture error:", error);
-
+      console.error(error);
       fixtures = [];
-
       render();
-
-      notify("Could not load fixtures. Please try again.");
+      notify("Fixtures could not be refreshed.");
     }
   }
 
-  // -----------------------------
   // LEAGUE FILTERS
-  // -----------------------------
 
   function renderLeagues() {
     const chips = $("leagueChips");
@@ -226,8 +167,7 @@
 
     if (chips) {
       chips.innerHTML = ["All", ...LEAGUES].map(league => `
-        <button
-          type="button"
+        <button type="button"
           class="chip ${selectedLeague === league ? "active" : ""}"
           data-league="${safe(league)}">
           ${league === "All" ? "All leagues" : safe(league)}
@@ -238,62 +178,48 @@
     if (filter) {
       filter.innerHTML = `
         <option value="All">All leagues</option>
-        ${LEAGUES.map(league => `
-          <option value="${safe(league)}">
-            ${safe(league)}
-          </option>
-        `).join("")}
+        ${LEAGUES.map(league =>
+          `<option value="${safe(league)}">${safe(league)}</option>`
+        ).join("")}
       `;
 
       filter.value = selectedLeague;
     }
   }
 
-  // -----------------------------
-  // MATCH CARD DISPLAY
-  // -----------------------------
+  // MATCH CARDS
 
   function renderMatches() {
     const grid = $("matchGrid");
-
     if (!grid) return;
 
-    const search = ($("search")?.value || "")
-      .trim()
-      .toLowerCase();
-
+    const search = ($("search")?.value || "").toLowerCase().trim();
     const sort = $("sort")?.value || "soonest";
 
     let matches = getAllMatches();
 
     if (selectedLeague !== "All") {
-      matches = matches.filter(match =>
-        match.league === selectedLeague
-      );
+      matches = matches.filter(m => m.league === selectedLeague);
     }
 
     if (search) {
-      matches = matches.filter(match =>
-        `${match.home} ${match.away} ${match.league}`
-          .toLowerCase()
-          .includes(search)
+      matches = matches.filter(m =>
+        `${m.home} ${m.away} ${m.league}`.toLowerCase().includes(search)
       );
     }
 
     matches.sort((a, b) => {
-      const dateA = new Date(a.date || 0).getTime();
-      const dateB = new Date(b.date || 0).getTime();
+      const first = new Date(a.date || 0).getTime();
+      const second = new Date(b.date || 0).getTime();
 
-      if (sort === "latest") return dateB - dateA;
-
-      return dateA - dateB;
+      return sort === "latest" ? second - first : first - second;
     });
 
     if (!matches.length) {
       grid.innerHTML = `
         <div class="empty-state">
           <h3>No matches found</h3>
-          <p>Try another search or select a different league.</p>
+          <p>Try another search or league.</p>
         </div>
       `;
       return;
@@ -303,26 +229,18 @@
       const date = formatDate(match.date);
 
       return `
-        <article
-          class="match-card"
+        <article class="match-card"
           data-match="${safe(match.id)}"
           tabindex="0"
-          role="button"
-          aria-label="View ${safe(match.home)} versus ${safe(match.away)}">
+          role="button">
 
           <div class="match-card-top">
-            <span class="league-name">
-              ${safe(match.league)}
-            </span>
-
-            <span class="match-label">
-              ${match.source === "manual" ? "Demo listing" : "Fixture"}
-            </span>
+            <span>${safe(match.league)}</span>
           </div>
 
           <div class="match-teams">
             <h3>${safe(match.home)}</h3>
-            <span class="versus">VS</span>
+            <span>VS</span>
             <h3>${safe(match.away)}</h3>
           </div>
 
@@ -334,7 +252,7 @@
 
           <div class="match-card-bottom">
             <span>View match details</span>
-            <span aria-hidden="true">→</span>
+            <span>→</span>
           </div>
         </article>
       `;
@@ -348,9 +266,7 @@
     renderAdmin();
   }
 
-  // -----------------------------
-  // MATCH DETAILS WINDOW
-  // -----------------------------
+  // MATCH DETAILS AND TICKET SELECTION
 
   function addModalStyles() {
     if ($("th-modal-styles")) return;
@@ -363,30 +279,30 @@
         position: fixed;
         inset: 0;
         z-index: 9998;
-        background: rgba(0,0,0,.75);
+        background: rgba(0,0,0,.78);
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 16px;
+        padding: 15px;
         overflow-y: auto;
       }
 
       .th-modal {
-        background: #fff;
+        position: relative;
+        background: white;
         color: #17202a;
         width: 100%;
         max-width: 600px;
-        max-height: 90vh;
+        max-height: 92vh;
         overflow-y: auto;
         border-radius: 14px;
         padding: 24px;
-        position: relative;
       }
 
       .th-modal-close {
         position: absolute;
-        right: 15px;
-        top: 12px;
+        right: 14px;
+        top: 10px;
         border: 0;
         background: transparent;
         font-size: 28px;
@@ -398,6 +314,32 @@
         border-radius: 9px;
         padding: 13px;
         margin: 10px 0;
+        cursor: pointer;
+      }
+
+      .th-category.selected {
+        border: 2px solid #176b45;
+        background: #f0faf4;
+      }
+
+      .th-modal input,
+      .th-modal select {
+        padding: 10px;
+        border: 1px solid #bbb;
+        border-radius: 7px;
+        max-width: 100%;
+      }
+
+      .th-primary {
+        width: 100%;
+        border: 0;
+        border-radius: 8px;
+        padding: 13px;
+        background: #142d24;
+        color: white;
+        font-weight: bold;
+        margin-top: 14px;
+        cursor: pointer;
       }
 
       .th-note {
@@ -406,29 +348,12 @@
         padding: 12px;
         font-size: 13px;
         line-height: 1.5;
-      }
-
-      .th-modal button {
-        cursor: pointer;
-      }
-
-      .th-primary {
-        display: block;
-        width: 100%;
-        border: 0;
-        border-radius: 8px;
-        padding: 13px;
-        background: #142d24;
-        color: white;
-        font-weight: bold;
         margin-top: 15px;
       }
 
-      .th-secondary {
-        border: 1px solid #bbb;
-        border-radius: 7px;
-        padding: 9px 14px;
-        background: white;
+      .th-cart-item {
+        border-bottom: 1px solid #ddd;
+        padding: 12px 0;
       }
     `;
 
@@ -436,13 +361,8 @@
   }
 
   function openMatch(matchId) {
-    const match = getAllMatches().find(item =>
-      String(item.id) === String(matchId)
-    );
-
+    const match = getAllMatches().find(m => String(m.id) === String(matchId));
     if (!match) return;
-
-    selectedMatch = match;
 
     addModalStyles();
 
@@ -453,26 +373,11 @@
     backdrop.id = "th-match-modal";
 
     backdrop.innerHTML = `
-      <section
-        class="th-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Match details">
-
-        <button
-          class="th-modal-close"
-          type="button"
-          aria-label="Close">
-          ×
-        </button>
+      <section class="th-modal" role="dialog" aria-modal="true">
+        <button class="th-modal-close" type="button">×</button>
 
         <p>${safe(match.league)}</p>
-
-        <h2>
-          ${safe(match.home)}
-          <span> vs </span>
-          ${safe(match.away)}
-        </h2>
+        <h2>${safe(match.home)} vs ${safe(match.away)}</h2>
 
         <p>📅 ${safe(date.date)}</p>
         <p>🕒 ${safe(date.time)}</p>
@@ -480,48 +385,96 @@
 
         <hr>
 
-        <h3>Ticket categories</h3>
+        <h3>Select a ticket category</h3>
 
-        <div class="th-category">
-          <strong>Standard</strong>
-          <p>General seating category.</p>
-          <strong>Indicative price: £35.00</strong>
+        <div id="th-categories">
+          ${CATEGORIES.map((category, index) => `
+            <label class="th-category ${index === 0 ? "selected" : ""}">
+              <input type="radio"
+                name="th-category"
+                value="${category.name}"
+                ${index === 0 ? "checked" : ""}>
+              <strong>${category.name}</strong>
+              <p>${money(category.price)} per ticket</p>
+            </label>
+          `).join("")}
         </div>
 
-        <div class="th-category">
-          <strong>Premium</strong>
-          <p>Premium seating category.</p>
-          <strong>Indicative price: £65.00</strong>
-        </div>
+        <label for="th-quantity"><strong>Quantity</strong></label>
+        <select id="th-quantity">
+          ${[1, 2, 3, 4, 5, 6].map(n =>
+            `<option value="${n}">${n}</option>`
+          ).join("")}
+        </select>
 
-        <div class="th-category">
-          <strong>Hospitality</strong>
-          <p>Hospitality category.</p>
-          <strong>Indicative price: £150.00</strong>
-        </div>
+        <p id="th-total"><strong>Total: ${money(35)}</strong></p>
 
         <div class="th-note">
-          These are demonstration categories and indicative prices only.
-          No admission ticket or seat is being offered or reserved.
-          Ticket sales require authorised inventory and confirmation
-          from the relevant club or ticket supplier.
+          Demonstration only: these categories and prices do not represent
+          confirmed tickets or available seats. No ticket can be purchased
+          or reserved through this demonstration.
         </div>
 
-        <button
-          type="button"
-          class="th-primary"
-          data-close-modal>
-          Close match details
+        <button type="button" class="th-primary" id="th-add-basket">
+          Add demonstration item to basket
         </button>
       </section>
     `;
 
     document.body.appendChild(backdrop);
 
+    function selectedCategory() {
+      return backdrop.querySelector(
+        'input[name="th-category"]:checked'
+      )?.value || "Standard";
+    }
+
+    function updateTotal() {
+      const category = CATEGORIES.find(
+        c => c.name === selectedCategory()
+      );
+
+      const quantity = Number($("th-quantity").value);
+      $("th-total").innerHTML =
+        `<strong>Total: ${money(category.price * quantity)}</strong>`;
+
+      backdrop.querySelectorAll(".th-category").forEach(label => {
+        label.classList.toggle(
+          "selected",
+          label.querySelector("input").checked
+        );
+      });
+    }
+
+    backdrop.addEventListener("change", updateTotal);
+
+    $("th-add-basket").addEventListener("click", () => {
+      const category = CATEGORIES.find(
+        c => c.name === selectedCategory()
+      );
+
+      const quantity = Number($("th-quantity").value);
+
+      const item = {
+        id: makeId(),
+        matchId: match.id,
+        name: `${match.home} vs ${match.away}`,
+        category: category.name,
+        price: category.price,
+        quantity
+      };
+
+      basket.push(item);
+      saveData();
+      renderBasket();
+
+      notify("Demonstration item added to basket.");
+      closeMatch();
+    });
+
     backdrop.addEventListener("click", event => {
       if (
         event.target === backdrop ||
-        event.target.closest("[data-close-modal]") ||
         event.target.closest(".th-modal-close")
       ) {
         closeMatch();
@@ -532,56 +485,44 @@
   }
 
   function handleEscape(event) {
-    if (event.key === "Escape") {
-      closeMatch();
-    }
+    if (event.key === "Escape") closeMatch();
   }
 
   function closeMatch() {
     $("th-match-modal")?.remove();
     document.removeEventListener("keydown", handleEscape);
-    selectedMatch = null;
   }
 
-  // -----------------------------
   // BASKET
-  // -----------------------------
 
   function renderBasket() {
     const count = $("cartCount");
     const items = $("cartItems");
     const total = $("cartTotal");
 
-    const quantity = basket.reduce(
-      (sum, item) => sum + item.quantity,
-      0
+    const quantity = basket.reduce((sum, item) =>
+      sum + item.quantity, 0
     );
 
     if (count) count.textContent = quantity;
 
     if (items) {
-      if (!basket.length) {
-        items.innerHTML = "<p>Your basket is empty.</p>";
-      } else {
-        items.innerHTML = basket.map(item => `
-          <div class="cart-item">
+      items.innerHTML = basket.length
+        ? basket.map(item => `
+          <div class="th-cart-item">
             <strong>${safe(item.name)}</strong>
             <p>${safe(item.category)} × ${item.quantity}</p>
             <p>${money(item.price * item.quantity)}</p>
-
-            <button
-              type="button"
-              data-remove="${safe(item.id)}">
+            <button type="button" data-remove="${safe(item.id)}">
               Remove
             </button>
           </div>
-        `).join("");
-      }
+        `).join("")
+        : "<p>Your basket is empty.</p>";
     }
 
-    const amount = basket.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
+    const amount = basket.reduce((sum, item) =>
+      sum + item.price * item.quantity, 0
     );
 
     if (total) total.textContent = money(amount);
@@ -594,9 +535,7 @@
     notify("Item removed from basket.");
   }
 
-  // -----------------------------
   // ADMIN PANEL
-  // -----------------------------
 
   function openAdmin() {
     $("adminPanel")?.classList.add("open");
@@ -610,51 +549,27 @@
 
   function renderAdmin() {
     const rows = $("adminRows");
-
     if (!rows) return;
 
-    if (!manualMatches.length) {
-      rows.innerHTML = "<p>No demonstration listings added.</p>";
-      return;
-    }
-
-    rows.innerHTML = manualMatches.map(match => `
-      <div class="admin-row">
-        <strong>
-          ${safe(match.home)} vs ${safe(match.away)}
-        </strong>
-
-        <p>${safe(match.league)}</p>
-        <p>${safe(formatDate(match.date).date)}</p>
-        <p>Demo price: ${money(match.price)}</p>
-
-        <button
-          type="button"
-          data-edit="${safe(match.id)}">
-          Edit
-        </button>
-
-        <button
-          type="button"
-          data-delete="${safe(match.id)}">
-          Delete
-        </button>
-      </div>
-    `).join("");
+    rows.innerHTML = manualMatches.length
+      ? manualMatches.map(match => `
+        <div class="admin-row">
+          <strong>${safe(match.home)} vs ${safe(match.away)}</strong>
+          <p>${safe(match.league)}</p>
+          <p>${safe(formatDate(match.date).date)}</p>
+          <button type="button" data-edit="${safe(match.id)}">Edit</button>
+          <button type="button" data-delete="${safe(match.id)}">Delete</button>
+        </div>
+      `).join("")
+      : "<p>No demonstration listings added.</p>";
   }
 
   function resetAdminForm() {
     $("matchForm")?.reset();
     editingId = null;
-
-    const submit = $("matchForm")?.querySelector(
-      'button[type="submit"]'
-    );
-
-    if (submit) submit.textContent = "Add demonstration listing";
   }
 
-  function addOrUpdateMatch(event) {
+  function saveAdminMatch(event) {
     event.preventDefault();
 
     const home = $("home")?.value.trim();
@@ -689,23 +604,21 @@
     };
 
     if (editingId) {
-      manualMatches = manualMatches.map(item =>
-        item.id === editingId ? match : item
+      manualMatches = manualMatches.map(m =>
+        m.id === editingId ? match : m
       );
-
-      notify("Demonstration listing updated.");
     } else {
       manualMatches.push(match);
-      notify("Demonstration listing added.");
     }
 
     saveData();
     resetAdminForm();
     render();
+    notify("Demonstration listing saved.");
   }
 
   function editMatch(id) {
-    const match = manualMatches.find(item => item.id === id);
+    const match = manualMatches.find(m => m.id === id);
     if (!match) return;
 
     editingId = id;
@@ -718,51 +631,30 @@
     $("price").value = match.price;
     $("stock").value = match.stock;
 
-    const submit = $("matchForm")?.querySelector(
-      'button[type="submit"]'
-    );
-
-    if (submit) submit.textContent = "Save changes";
-
-    notify("You are editing this demonstration listing.");
+    notify("Editing demonstration listing.");
   }
 
   function deleteMatch(id) {
-    const confirmed = confirm(
-      "Delete this demonstration listing?"
-    );
+    if (!confirm("Delete this demonstration listing?")) return;
 
-    if (!confirmed) return;
-
-    manualMatches = manualMatches.filter(
-      item => item.id !== id
-    );
-
-    basket = basket.filter(item =>
-      item.matchId !== id
-    );
+    manualMatches = manualMatches.filter(m => m.id !== id);
+    basket = basket.filter(item => item.matchId !== id);
 
     saveData();
     render();
     notify("Listing deleted.");
   }
 
-  // -----------------------------
   // EVENT LISTENERS
-  // -----------------------------
 
   function setupEvents() {
-
     $("matchGrid")?.addEventListener("click", event => {
       const card = event.target.closest("[data-match]");
       if (card) openMatch(card.dataset.match);
     });
 
     $("matchGrid")?.addEventListener("keydown", event => {
-      if (
-        event.key === "Enter" ||
-        event.key === " "
-      ) {
+      if (event.key === "Enter" || event.key === " ") {
         const card = event.target.closest("[data-match]");
         if (card) {
           event.preventDefault();
@@ -791,10 +683,7 @@
     $("closeAdmin")?.addEventListener("click", closeAdmin);
     $("backdrop")?.addEventListener("click", closeAdmin);
 
-    $("matchForm")?.addEventListener(
-      "submit",
-      addOrUpdateMatch
-    );
+    $("matchForm")?.addEventListener("submit", saveAdminMatch);
 
     $("adminRows")?.addEventListener("click", event => {
       const edit = event.target.closest("[data-edit]");
@@ -805,7 +694,7 @@
     });
 
     $("cartOpen")?.addEventListener("click", () => {
-      notify("The basket is currently demonstration-only.");
+      $("drawer")?.classList.add("open");
     });
 
     $("cartClose")?.addEventListener("click", () => {
@@ -821,17 +710,13 @@
       event.preventDefault();
 
       notify(
-        "Checkout is not enabled. Authorised ticket inventory, " +
-        "secure payment processing and ticket delivery must be " +
-        "configured before accepting payments."
+        "Checkout is not enabled. Real ticket inventory and secure " +
+        "payment verification must be set up first."
       );
     });
-
   }
 
-  // -----------------------------
-  // START WEBSITE
-  // -----------------------------
+  // START
 
   function start() {
     setupEvents();
@@ -844,6 +729,4 @@
   } else {
     start();
   }
-
 })();
-        
