@@ -1,11 +1,9 @@
 (() => {
   "use strict";
 
-  // TICKETHUB - FRONT-END DEMONSTRATION VERSION
-  // Real ticket sales, secure admin authentication and PayPal checkout
-  // require a protected server-side system.
-
   const $ = id => document.getElementById(id);
+
+  const ADMIN_ACCESS_CODE = "CHANGE-ME-1234";
 
   const LEAGUES = [
     "Premier League",
@@ -18,11 +16,6 @@
     { name: "Premium", price: 65, description: "Premium seating category" },
     { name: "Hospitality", price: 150, description: "Hospitality category" }
   ];
-
-  // TEMPORARY PASSWORD PROMPT.
-  // Change this value if you want a different demonstration access code.
-  // This is NOT secure authentication because visitors can inspect app.js.
-  const ADMIN_ACCESS_CODE = "CHANGE-ME-1234";
 
   const STADIUMS = {
     "arsenal": "Emirates Stadium",
@@ -129,8 +122,7 @@
   }
 
   function makeId() {
-    return "th-" + Date.now() + "-" +
-      Math.floor(Math.random() * 100000);
+    return "th-" + Date.now() + "-" + Math.floor(Math.random() * 100000);
   }
 
   function notify(message) {
@@ -151,32 +143,33 @@
     }, 3000);
   }
 
+  function getFormValue(name) {
+    return $("matchForm")?.querySelector(`[name="${name}"]`)?.value ?? "";
+  }
+
+  function setFormValue(name, value) {
+    const field = $("matchForm")?.querySelector(`[name="${name}"]`);
+    if (field) field.value = value ?? "";
+  }
+
   function venueFor(home, suppliedVenue) {
-    if (suppliedVenue &&
-        suppliedVenue !== "Venue to be confirmed") {
+    if (suppliedVenue && suppliedVenue !== "Venue to be confirmed") {
       return suppliedVenue;
     }
 
-    const key = String(home || "").toLowerCase().trim();
-
-    return STADIUMS[key] || "Venue to be confirmed";
+    return STADIUMS[String(home || "").toLowerCase().trim()]
+      || "Venue to be confirmed";
   }
 
   function formatDate(value) {
     if (!value) {
-      return {
-        date: "Date to be confirmed",
-        time: "Time to be confirmed"
-      };
+      return { date: "Date to be confirmed", time: "Time to be confirmed" };
     }
 
     const date = new Date(value);
 
     if (isNaN(date.getTime())) {
-      return {
-        date: "Date to be confirmed",
-        time: "Time to be confirmed"
-      };
+      return { date: "Date to be confirmed", time: "Time to be confirmed" };
     }
 
     return {
@@ -199,42 +192,32 @@
     return [...manualMatches, ...fixtures];
   }
 
-  // LOAD AUTOMATIC FOOTBALL FIXTURES
+  // FIXTURE LOADING
+
   async function loadFixtures() {
     const grid = $("matchGrid");
 
-    if (grid) {
-      grid.innerHTML = "<p>Loading football fixtures...</p>";
-    }
+    if (grid) grid.innerHTML = "<p>Loading football fixtures...</p>";
 
     try {
       const response = await fetch("/api/fixtures");
 
-      if (!response.ok) {
-        throw new Error("Fixture request failed");
-      }
+      if (!response.ok) throw new Error("Fixture request failed");
 
       const data = await response.json();
       const list = Array.isArray(data) ? data : (data.matches || []);
 
       fixtures = list.map(match => {
-        const competition =
-          match.competition?.name || match.league || "";
-
+        const competition = match.competition?.name || match.league || "";
         const lower = competition.toLowerCase();
 
         let league = competition;
 
-        if (lower.includes("premier")) {
-          league = "Premier League";
-        } else if (lower.includes("championship")) {
-          league = "Championship";
-        } else if (lower.includes("league one")) {
-          league = "League One";
-        }
+        if (lower.includes("premier")) league = "Premier League";
+        else if (lower.includes("championship")) league = "Championship";
+        else if (lower.includes("league one")) league = "League One";
 
-        const home =
-          match.homeTeam?.name || match.home || "Home team";
+        const home = match.homeTeam?.name || match.home || "Home team";
 
         return {
           id: "fixture-" + match.id,
@@ -248,7 +231,6 @@
       });
 
       render();
-
     } catch (error) {
       console.error("Fixture loading error:", error);
       fixtures = [];
@@ -257,7 +239,8 @@
     }
   }
 
-  // LEAGUE FILTERS
+  // LEAGUES
+
   function renderLeagues() {
     const chips = $("leagueChips");
     const filter = $("leagueFilter");
@@ -281,40 +264,44 @@
 
       filter.value = selectedLeague;
     }
+
+    const adminLeague = $("adminLeague");
+
+    if (adminLeague) {
+      adminLeague.innerHTML = LEAGUES.map(league => `
+        <option value="${safe(league)}">${safe(league)}</option>
+      `).join("");
+    }
   }
 
   // MATCH CARDS
+
   function renderMatches() {
     const grid = $("matchGrid");
-
     if (!grid) return;
 
     const search = ($("search")?.value || "").toLowerCase().trim();
-    const sort = $("sort")?.value || "soonest";
+    const sort = $("sort")?.value || "date";
 
     let matches = getAllMatches();
 
     if (selectedLeague !== "All") {
-      matches = matches.filter(match =>
-        match.league === selectedLeague
-      );
+      matches = matches.filter(match => match.league === selectedLeague);
     }
 
     if (search) {
       matches = matches.filter(match =>
         `${match.home} ${match.away} ${match.league}`
-          .toLowerCase()
-          .includes(search)
+          .toLowerCase().includes(search)
       );
     }
 
     matches.sort((a, b) => {
-      const first = new Date(a.date || 0).getTime();
-      const second = new Date(b.date || 0).getTime();
+      if (sort === "price") {
+        return Number(a.price || 0) - Number(b.price || 0);
+      }
 
-      return sort === "latest"
-        ? second - first
-        : first - second;
+      return new Date(a.date || 0) - new Date(b.date || 0);
     });
 
     if (!matches.length) {
@@ -369,7 +356,8 @@
     renderAdmin();
   }
 
-  // MOBILE-FRIENDLY MATCH DETAILS AND CATEGORY LAYOUT
+  // MOBILE LAYOUT STYLES
+
   function addModalStyles() {
     if ($("th-modal-styles")) return;
 
@@ -390,14 +378,7 @@
         box-sizing:border-box !important;
       }
 
-      .th-modal-backdrop *,
-      .th-modal-backdrop *::before,
-      .th-modal-backdrop *::after {
-        box-sizing:border-box !important;
-      }
-
       .th-modal {
-        display:block !important;
         position:relative !important;
         background:#fff !important;
         color:#17202a !important;
@@ -409,13 +390,11 @@
         padding:22px !important;
         margin:auto !important;
         line-height:1.45 !important;
+        box-sizing:border-box !important;
       }
 
-      .th-modal h2,
-      .th-modal h3,
-      .th-modal p {
-        position:static !important;
-        float:none !important;
+      .th-modal * {
+        box-sizing:border-box !important;
       }
 
       .th-modal-close {
@@ -425,8 +404,6 @@
         border:0 !important;
         background:transparent !important;
         font-size:30px !important;
-        line-height:1 !important;
-        padding:5px !important;
         cursor:pointer !important;
       }
 
@@ -443,8 +420,6 @@
         flex-direction:row !important;
         align-items:flex-start !important;
         gap:10px !important;
-        position:relative !important;
-        float:none !important;
         width:100% !important;
         min-height:72px !important;
         height:auto !important;
@@ -454,8 +429,6 @@
         border-radius:10px !important;
         background:#fff !important;
         cursor:pointer !important;
-        white-space:normal !important;
-        overflow:visible !important;
       }
 
       .th-category.selected {
@@ -464,9 +437,7 @@
       }
 
       .th-category input {
-        position:static !important;
         display:block !important;
-        flex:0 0 auto !important;
         width:18px !important;
         height:18px !important;
         margin:3px 0 0 !important;
@@ -475,7 +446,7 @@
       .th-category-copy {
         display:block !important;
         min-width:0 !important;
-        flex:1 1 auto !important;
+        flex:1 !important;
       }
 
       .th-category-copy strong,
@@ -528,7 +499,6 @@
         border-radius:8px !important;
         padding:12px !important;
         font-size:13px !important;
-        line-height:1.5 !important;
         margin-top:14px !important;
       }
 
@@ -541,12 +511,6 @@
       @media(max-width:480px) {
         .th-modal {
           padding:18px 14px !important;
-          border-radius:11px !important;
-        }
-
-        .th-modal h2 {
-          font-size:21px !important;
-          padding-right:24px !important;
         }
 
         .th-category {
@@ -559,7 +523,8 @@
     document.head.appendChild(style);
   }
 
-  // OPEN MATCH DETAILS
+  // MATCH DETAILS
+
   function openMatch(matchId) {
     const match = getAllMatches().find(item =>
       String(item.id) === String(matchId)
@@ -578,17 +543,11 @@
     backdrop.id = "th-match-modal";
 
     backdrop.innerHTML = `
-      <section class="th-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Match details">
+      <section class="th-modal" role="dialog" aria-modal="true">
 
-        <button class="th-modal-close"
-          type="button"
-          aria-label="Close">×</button>
+        <button class="th-modal-close" type="button">×</button>
 
         <p>${safe(match.league)}</p>
-
         <h2>${safe(match.home)} vs ${safe(match.away)}</h2>
 
         <p>📅 ${safe(date.date)}</p>
@@ -602,8 +561,7 @@
         <div class="th-category-list">
           ${CATEGORIES.map((category, index) => `
             <label class="th-category ${index === 0 ? "selected" : ""}">
-              <input
-                type="radio"
+              <input type="radio"
                 name="th-category"
                 value="${category.name}"
                 ${index === 0 ? "checked" : ""}>
@@ -611,10 +569,7 @@
               <span class="th-category-copy">
                 <strong>${category.name}</strong>
                 <span>${category.description}</span>
-                <span>
-                  <strong>${money(category.price)}</strong>
-                  per ticket
-                </span>
+                <span><strong>${money(category.price)}</strong> per ticket</span>
               </span>
             </label>
           `).join("")}
@@ -622,28 +577,22 @@
 
         <div class="th-quantity-row">
           <strong>Ticket quantity</strong>
-
-          <select id="th-quantity" aria-label="Ticket quantity">
+          <select id="th-quantity">
             ${[1, 2, 3, 4, 5, 6].map(number => `
               <option value="${number}">${number}</option>
             `).join("")}
           </select>
         </div>
 
-        <p id="th-total">
-          <strong>Total: ${money(CATEGORIES[0].price)}</strong>
-        </p>
+        <p id="th-total"><strong>Total: ${money(CATEGORIES[0].price)}</strong></p>
 
         <div class="th-note">
           Demonstration only. These categories and prices are not confirmed
-          tickets, seats or availability. No admission ticket can be
-          purchased or reserved here. Ticket sales must only begin after
+          tickets, seats or availability. Ticket sales must only begin after
           authorised ticket supply is secured.
         </div>
 
-        <button type="button"
-          class="th-primary"
-          id="th-add-basket">
+        <button type="button" class="th-primary" id="th-add-basket">
           Add demonstration item to basket
         </button>
       </section>
@@ -656,9 +605,8 @@
         'input[name="th-category"]:checked'
       )?.value;
 
-      return CATEGORIES.find(category =>
-        category.name === selected
-      ) || CATEGORIES[0];
+      return CATEGORIES.find(category => category.name === selected)
+        || CATEGORIES[0];
     }
 
     function updateTotal() {
@@ -706,35 +654,24 @@
         closeMatch();
       }
     });
-
-    document.addEventListener("keydown", handleEscape);
-  }
-
-  function handleEscape(event) {
-    if (event.key === "Escape") {
-      closeMatch();
-    }
   }
 
   function closeMatch() {
     $("th-match-modal")?.remove();
-    document.removeEventListener("keydown", handleEscape);
   }
 
   // BASKET
+
   function renderBasket() {
     const count = $("cartCount");
     const items = $("cartItems");
     const total = $("cartTotal");
 
     const quantity = basket.reduce(
-      (sum, item) => sum + item.quantity,
-      0
+      (sum, item) => sum + item.quantity, 0
     );
 
-    if (count) {
-      count.textContent = quantity;
-    }
+    if (count) count.textContent = quantity;
 
     if (items) {
       items.innerHTML = basket.length
@@ -743,8 +680,7 @@
               <strong>${safe(item.name)}</strong>
               <p>${safe(item.category)} × ${item.quantity}</p>
               <p>${money(item.price * item.quantity)}</p>
-              <button type="button"
-                data-remove="${safe(item.id)}">
+              <button type="button" data-remove="${safe(item.id)}">
                 Remove
               </button>
             </div>
@@ -753,13 +689,10 @@
     }
 
     const amount = basket.reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0
+      (sum, item) => sum + item.price * item.quantity, 0
     );
 
-    if (total) {
-      total.textContent = money(amount);
-    }
+    if (total) total.textContent = money(amount);
   }
 
   function removeFromBasket(id) {
@@ -769,7 +702,8 @@
     notify("Item removed from basket.");
   }
 
-  // ADMIN PANEL
+  // ADMIN PANEL - CORRECTED FOR YOUR INDEX.HTML
+
   function openAdmin() {
     if (!adminUnlocked) {
       const entered = window.prompt("Admin access code:");
@@ -784,238 +718,22 @@
       adminUnlocked = true;
     }
 
-    $("adminPanel")?.classList.add("open");
-    $("backdrop")?.classList.add("show");
+    const panel = $("adminPanel");
+    const backdrop = $("backdrop");
+
+    if (panel) {
+      panel.classList.remove("hidden");
+      panel.classList.add("open");
+      panel.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    if (backdrop) {
+      backdrop.classList.remove("hidden");
+      backdrop.classList.add("show");
+    }
+
+    renderAdmin();
   }
 
   function closeAdmin() {
-    $("adminPanel")?.classList.remove("open");
-    $("backdrop")?.classList.remove("show");
-  }
-
-  function renderAdmin() {
-    const rows = $("adminRows");
-
-    if (!rows) return;
-
-    rows.innerHTML = manualMatches.length
-      ? manualMatches.map(match => `
-          <div class="admin-row">
-            <strong>${safe(match.home)} vs ${safe(match.away)}</strong>
-            <p>${safe(match.league)}</p>
-            <p>${safe(formatDate(match.date).date)}</p>
-            <p>Demonstration price: ${money(match.price)}</p>
-
-            <button type="button"
-              data-edit="${safe(match.id)}">
-              Edit
-            </button>
-
-            <button type="button"
-              data-delete="${safe(match.id)}">
-              Delete
-            </button>
-          </div>
-        `).join("")
-      : "<p>No demonstration listings added.</p>";
-  }
-
-  function resetAdminForm() {
-    $("matchForm")?.reset();
-    editingId = null;
-  }
-
-  // ADMIN: ADD OR UPDATE A LISTING
-  function saveAdminMatch(event) {
-    event.preventDefault();
-
-    if (!adminUnlocked) {
-      notify("Admin access is required.");
-      return;
-    }
-
-    const home = $("home")?.value.trim();
-    const away = $("away")?.value.trim();
-    const league = $("adminLeague")?.value;
-    const date = $("date")?.value;
-    const venue = $("venue")?.value.trim();
-    const price = Number($("price")?.value);
-    const stock = Number($("stock")?.value);
-
-    if (!home || !away || !league || !date || !venue) {
-      notify("Please complete all match details.");
-      return;
-    }
-
-    if (
-      !Number.isFinite(price) ||
-      price < 0 ||
-      !Number.isInteger(stock) ||
-      stock < 0
-    ) {
-      notify("Enter a valid price and quantity.");
-      return;
-    }
-
-    const match = {
-      id: editingId || makeId(),
-      home,
-      away,
-      league,
-      date,
-      venue,
-      price,
-      stock,
-      source: "manual"
-    };
-
-    if (editingId) {
-      manualMatches = manualMatches.map(item =>
-        item.id === editingId ? match : item
-      );
-    } else {
-      manualMatches.push(match);
-    }
-
-    saveData();
-    resetAdminForm();
-    render();
-
-    notify("Demonstration listing saved.");
-  }
-
-  // ADMIN: EDIT A LISTING
-  function editMatch(id) {
-    if (!adminUnlocked) return;
-
-    const match = manualMatches.find(item => item.id === id);
-
-    if (!match) return;
-
-    editingId = id;
-
-    $("home").value = match.home;
-    $("away").value = match.away;
-    $("adminLeague").value = match.league;
-    $("date").value = match.date;
-    $("venue").value = match.venue;
-    $("price").value = match.price;
-    $("stock").value = match.stock;
-
-    notify("Editing demonstration listing.");
-  }
-
-  // ADMIN: DELETE A LISTING
-  function deleteMatch(id) {
-    if (!adminUnlocked) return;
-
-    if (!confirm("Delete this demonstration listing?")) {
-      return;
-    }
-
-    manualMatches = manualMatches.filter(item => item.id !== id);
-
-    basket = basket.filter(item => item.matchId !== id);
-
-    saveData();
-    render();
-
-    notify("Listing deleted.");
-  }
-
-  // WEBSITE BUTTONS AND EVENTS
-  function setupEvents() {
-    $("matchGrid")?.addEventListener("click", event => {
-      const card = event.target.closest("[data-match]");
-
-      if (card) {
-        openMatch(card.dataset.match);
-      }
-    });
-
-    $("matchGrid")?.addEventListener("keydown", event => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-
-      const card = event.target.closest("[data-match]");
-
-      if (card) {
-        event.preventDefault();
-        openMatch(card.dataset.match);
-      }
-    });
-
-    $("leagueChips")?.addEventListener("click", event => {
-      const button = event.target.closest("[data-league]");
-
-      if (!button) return;
-
-      selectedLeague = button.dataset.league;
-      render();
-    });
-
-    $("leagueFilter")?.addEventListener("change", event => {
-      selectedLeague = event.target.value;
-      render();
-    });
-
-    $("search")?.addEventListener("input", renderMatches);
-    $("sort")?.addEventListener("change", renderMatches);
-
-    $("adminToggle")?.addEventListener("click", openAdmin);
-    $("closeAdmin")?.addEventListener("click", closeAdmin);
-    $("backdrop")?.addEventListener("click", closeAdmin);
-
-    $("matchForm")?.addEventListener("submit", saveAdminMatch);
-
-    $("adminRows")?.addEventListener("click", event => {
-      const edit = event.target.closest("[data-edit]");
-      const remove = event.target.closest("[data-delete]");
-
-      if (edit) {
-        editMatch(edit.dataset.edit);
-      }
-
-      if (remove) {
-        deleteMatch(remove.dataset.delete);
-      }
-    });
-
-    $("cartOpen")?.addEventListener("click", () => {
-      $("drawer")?.classList.add("open");
-    });
-
-    $("cartClose")?.addEventListener("click", () => {
-      $("drawer")?.classList.remove("open");
-    });
-
-    $("cartItems")?.addEventListener("click", event => {
-      const button = event.target.closest("[data-remove]");
-
-      if (button) {
-        removeFromBasket(button.dataset.remove);
-      }
-    });
-
-    $("checkout")?.addEventListener("click", event => {
-      event.preventDefault();
-
-      notify(
-        "Checkout is disabled until authorised ticket inventory " +
-        "and secure payment verification are configured."
-      );
-    });
-  }
-
-  function start() {
-    setupEvents();
-    render();
-    loadFixtures();
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", start);
-  } else {
-    start();
-  }
-
-})();
+    const pane
